@@ -1,50 +1,59 @@
-// GeolocationComponent.jsx
 import React, { useState, useEffect } from 'react';
+import { HashRouter as Router, Routes, Route } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
+import Navigation from './components/Navigation';
+import Dashboard from './components/Dashboard';
+import ExpenseForm from './components/ExpenseForm';
+import ExpenseList from './components/ExpenseList';
+import GroupManagement from './components/GroupManagement';
+import SplitSummary from './components/SplitSummary';
+import LocationMap from './components/LocationMap';
+import Reports from './components/Reports';
+import { ExpenseProvider } from './context/ExpenseContext';
+import './App.css';
 
-function GeolocationComponent() {
-  const [address, setAddress] = useState('Locating...');
+function App() {
+  const [currentLocation, setCurrentLocation] = useState(null);
 
   useEffect(() => {
-    const fetchLocation = async (latitude, longitude) => {
-      try {
-        const apiKey = 'd954c8a4df8842f9b2910b51438f2f1d';
-        const response = await fetch(
-          `https://api.opencagedata.com/geocode/v1/json?q=${latitude}+${longitude}&key=${apiKey}`
-        );
-        const data = await response.json();
-        const result = data?.results?.[0]?.formatted;
-        setAddress(result || 'Address not found');
-      } catch (error) {
-        console.error('Reverse geocoding error:', error);
-        setAddress('Unable to fetch address');
-      }
-    };
-
-    if ('geolocation' in navigator) {
+    // Get user's current location
+    if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
-          const { latitude, longitude } = position.coords;
-          fetchLocation(latitude, longitude);
+          setCurrentLocation({
+            lat: position.coords.latitude,
+            lng: position.coords.longitude
+          });
         },
         (error) => {
-          console.error('Location error:', error);
-          setAddress('Location unavailable');
-        },
-        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+          console.log('Location access denied:', error);
+        }
       );
-    } else {
-      setAddress('Geolocation not supported');
     }
   }, []);
 
   return (
-    <div>
-      <label className="font-semibold">📍 Location</label>
-      <div className="p-2 mt-1 rounded bg-green-100 text-green-900">
-        {address}
-      </div>
-    </div>
+    <ExpenseProvider>
+      <Router>
+        <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
+          <Navigation />
+          <main className="pb-20">
+            <AnimatePresence mode="wait">
+              <Routes>
+                <Route path="/" element={<Dashboard />} />
+                <Route path="/add-expense" element={<ExpenseForm currentLocation={currentLocation} />} />
+                <Route path="/expenses" element={<ExpenseList />} />
+                <Route path="/groups" element={<GroupManagement />} />
+                <Route path="/split" element={<SplitSummary />} />
+                <Route path="/map" element={<LocationMap />} />
+                <Route path="/reports" element={<Reports />} />
+              </Routes>
+            </AnimatePresence>
+          </main>
+        </div>
+      </Router>
+    </ExpenseProvider>
   );
 }
 
-export default GeolocationComponent;
+export default App;
